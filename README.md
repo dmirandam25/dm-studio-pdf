@@ -46,4 +46,8 @@ El resultado es `escritorio/DM Studio PDF.exe`, con la app dentro.
 | Fuentes Liberation | texto editado | SIL OFL 1.1 |
 | Microsoft WebView2 SDK | ventana del programa | licencia del SDK de Microsoft (redistribuible) |
 
-Como MuPDF es AGPL-3.0, si este proyecto se distribuye públicamente su código debe publicarse bajo AGPL-3.0.
+## Licencia
+
+DM Studio · PDF se publica bajo la licencia **GNU AGPL-3.0** (ver [LICENSE](LICENSE)), la que exige MuPDF.
+Puedes usarlo, estudiarlo, modificarlo y compartirlo; si distribuyes una versión modificada, debes compartir también su código bajo la misma licencia.
+Cada librería de terceros conserva su propia licencia (tabla de arriba).
