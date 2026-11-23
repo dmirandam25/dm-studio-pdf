@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DM Studio · PDF</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="ui.css">
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/fontkit.umd.min.js"></script>
+<script src="vendor/typo.js"></script>
+<link rel="icon" type="image/png" href="img/icono-64.png">
+<script src="vendor/tesseract/tesseract.min.js"></script>
+<!-- al abrir con doble clic (file://) el worker se carga en el hilo principal -->
+<script>if (location.protocol === 'file:') document.write('<script src="vendor/pdf.worker.min.js"><\/script>');</script>
+</head>
+<body>
+<header id="topbar">
+  <div class="brand"><img class="logo-img" src="img/icono-64.png" alt=""><span class="brand-name">DM Studio · <b>PDF</b></span></div>
+  <button id="homeBtn" title="Inicio"><i data-i="home"></i></button>
+  <nav id="modeTabs">
+    <button data-mode="all">Todas las herramientas</button>
+    <button data-mode="read">Leer</button>
+    <button data-mode="edit">Editar</button>
+    <button data-mode="convert">Convertir</button>
+    <button data-mode="sign">Firmar</button>
+  </nav>
+  <div class="doc-title"><button id="docMenuBtn" title="Opciones del documento"><i data-i="pages"></i><span id="docName"></span><i data-i="down" class="chev"></i></button></div>
+  <div class="spacer"></div>
+  <button id="tsBtn" title="Buscar herramientas (Ctrl+K)"><i data-i="search"></i><span>Buscar herramientas…</span><kbd>Ctrl+K</kbd></button>
+  <div class="group" id="topActions">
+    <button data-act="searchPanel" title="Buscar (Ctrl+F)"><i data-i="search"></i></button>
+    <div id="viewHost"></div>
+    <button data-act="print" title="Imprimir (Ctrl+P)"><i data-i="print"></i></button>
+    <button data-act="moreMenu" title="Más opciones"><i data-i="more"></i></button>
+    <button data-act="export" class="primary" title="Guardar (Ctrl+S)"><i data-i="download"></i><span>Guardar</span></button>
+  </div>
+</header>
+
+<div id="tabbar"></div>
+
+<main id="main">
+  <aside id="toolsPanel"></aside>
+
+  <div id="work">
+    <div id="home"></div>
+    <div id="toolbar">
+      <div class="tools">
+        <button data-tool="select" title="Seleccionar / texto (V)"><i data-i="cursor"></i></button>
+        <button data-tool="note" title="Comentario: nota adhesiva (N)"><i data-i="note"></i></button>
+        <button data-tool="highlight" title="Resaltar área (H)"><i data-i="highlight"></i></button>
+        <button data-tool="ink" title="Dibujo a mano (D)"><i data-i="pen"></i></button>
+        <button data-tool="text" title="Añadir texto (T)"><i data-i="text"></i></button>
+        <button data-tool="edittext" title="Editar texto del PDF (K) · clic = palabra · Shift+clic = línea · Ctrl+clic = párrafo · Supr = borrar"><i data-i="edittext"></i></button>
+        <button data-tool="rect" title="Rectángulo (R)"><i data-i="rect"></i></button>
+        <button data-tool="ellipse" title="Elipse (E)"><i data-i="ellipse"></i></button>
+        <button data-tool="line" title="Línea (L)"><i data-i="line"></i></button>
+        <button data-tool="arrow" title="Flecha (A)"><i data-i="arrow"></i></button>
+        <button data-act="signature" title="Firmar (S)"><i data-i="sign"></i></button>
+        <button data-act="image" title="Insertar imagen (I)"><i data-i="image"></i></button>
+        <button data-tool="editimg" title="Editar imágenes y formas del PDF (J)"><i data-i="imgedit"></i></button>
+        <button data-tool="whiteout" title="Borrar área (W)"><i data-i="whiteout"></i></button>
+        <button data-tool="redact" title="Redactar / ocultar contenido (X)"><i data-i="redact"></i></button>
+        <button data-tool="eraser" title="Borrar anotación (B)"><i data-i="eraser"></i></button>
+        <span class="sep"></span>
+        <button data-act="undo" title="Deshacer (Ctrl+Z)"><i data-i="undo"></i></button>
+        <button data-act="redo" title="Rehacer (Ctrl+Y)"><i data-i="redo"></i></button>
+      </div>
+      <div class="props">
+        <div class="swatches" id="swatches"></div>
+        <input type="color" id="colorInput" title="Color">
+        <label title="Grosor">Grosor <input type="range" id="widthInput" min="1" max="20" value="2"><output id="widthOut">2</output></label>
+        <label title="Tamaño de letra">Letra <select id="fontInput"><option>8</option><option>10</option><option>12</option><option selected>14</option><option>18</option><option>24</option><option>32</option><option>48</option></select></label>
+        <select id="famInput" title="Fuente"><option value="Helvetica">Helvetica</option><option value="Times">Times</option><option value="Courier">Courier</option></select>
+        <label class="tog" title="Negrita"><input type="checkbox" id="boldInput"><b>N</b></label>
+        <label class="tog" title="Cursiva"><input type="checkbox" id="italicInput"><em>K</em></label>
+        <label title="Opacidad">Opacidad <input type="range" id="opacityInput" min="10" max="100" value="100"></label>
+        <label title="Relleno para rectángulos y elipses"><input type="checkbox" id="fillInput"> Relleno</label>
+      </div>
+    </div>
+
+    <div id="viewer" tabindex="0">
+      <div id="empty">
+        <div class="drop">
+          <div class="welcome-art"><span class="logo big-logo">F</span></div>
+          <h1>Te damos la bienvenida a DM Studio · PDF</h1>
+          <p>Edita, convierte, firma y compara tus PDF. Todo se procesa en tu equipo: tus archivos nunca salen de él.</p>
+          <div class="row">
+            <button class="primary" data-act="open"><i data-i="open"></i> Abrir un archivo</button>
+            <button data-act="newDoc"><i data-i="fileplus"></i> Documento en blanco</button>
+          </div>
+          <p class="hint" style="padding:0;margin-top:12px">O arrastra aquí un PDF, un Word, un Excel, un PowerPoint o imágenes.</p>
+          <div class="tips">
+            <div><b>01</b><span>Edita el texto y las imágenes del PDF directamente.</span></div>
+            <div><b>02</b><span>Convierte a Word, Excel o PowerPoint y al revés.</span></div>
+            <div><b>03</b><span>Firma, rellena formularios y compara versiones.</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="pages"></div>
+    </div>
+  </div>
+
+  <aside id="sidebar">
+    <nav class="tabs">
+      <button data-tab="pages" class="active" title="Miniaturas de página"><i data-i="pages"></i></button>
+      <button data-tab="comments" title="Comentarios"><i data-i="note"></i></button>
+      <button data-tab="search" title="Buscar (Ctrl+F)"><i data-i="search"></i></button>
+      <button data-tab="form" title="Formulario"><i data-i="form"></i></button>
+    </nav>
+    <section data-panel="pages" class="panel active">
+      <div class="panel-head">
+        <b>Páginas</b>
+        <div class="mini">
+          <button data-act="rotL" title="Girar a la izquierda"><i data-i="rotl"></i></button>
+          <button data-act="rotR" title="Girar a la derecha"><i data-i="rotr"></i></button>
+          <button data-act="dup" title="Duplicar"><i data-i="copy"></i></button>
+          <button data-act="blank" title="Insertar página en blanco"><i data-i="fileplus"></i></button>
+          <button data-act="extract" title="Extraer seleccionadas a un PDF"><i data-i="scissors"></i></button>
+          <button data-act="delPages" title="Eliminar seleccionadas"><i data-i="trash"></i></button>
+        </div>
+      </div>
+      <p class="hint">Clic para ir · Ctrl/Shift para seleccionar varias · arrastra para reordenar</p>
+      <div id="thumbs"></div>
+    </section>
+    <section data-panel="comments" class="panel">
+      <div class="panel-head"><b>Comentarios y marcas</b></div>
+      <div id="commentList"></div>
+    </section>
+    <section data-panel="search" class="panel">
+      <div class="panel-head"><b>Buscar</b></div>
+      <form id="searchForm"><input id="searchInput" placeholder="Buscar en el documento…"><button>Buscar</button></form>
+      <div id="searchInfo" class="hint"></div>
+      <div id="searchResults"></div>
+    </section>
+    <section data-panel="form" class="panel">
+      <div class="panel-head"><b>Rellenar formulario</b></div>
+      <div id="formFields"></div>
+    </section>
+  </aside>
+
+  <nav id="rail">
+    <div class="rail-panels"></div>
+    <div class="rail-grow"></div>
+    <div class="rail-nav">
+      <input id="pageInput" type="text" value="0" title="Página actual">
+      <span id="pageCount">/ 0</span>
+      <button data-act="prev" title="Página anterior"><i data-i="up"></i></button>
+      <button data-act="next" title="Página siguiente"><i data-i="down"></i></button>
+    </div>
+    <div class="rail-zoom">
+      <button data-act="rotR" title="Girar la página"><i data-i="rotr"></i></button>
+      <button data-act="zoomIn" title="Acercar (Ctrl +)"><i data-i="plus"></i></button>
+      <select id="zoomSel" title="Zoom">
+        <option value="fitw">Ancho</option><option value="fitp">Página</option>
+        <option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option>
+        <option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option>
+      </select>
+      <button data-act="zoomOut" title="Alejar (Ctrl −)"><i data-i="minus"></i></button>
+    </div>
+  </nav>
+</main>
+
+<div id="selMenu" class="floating hidden">
+  <button data-mark="highlight">Resaltar</button><button data-mark="underline">Subrayar</button>
+  <button data-mark="strike">Tachar</button><button data-mark="copy">Copiar</button>
+</div>
+
+<div id="modal" class="hidden"><div class="modal-card" id="modalCard"></div></div>
+<div id="toast" class="hidden"></div>
+
+<input type="file" id="fileOpen" accept="application/pdf,image/*" multiple hidden>
+<input type="file" id="fileAdd" accept="application/pdf,image/*" multiple hidden>
+<input type="file" id="fileImage" accept="image/*" hidden>
+
+<script src="app.js"></script>
+<script src="features.js"></script>
+<script src="convert.js"></script>
+<script src="pdf2word.js"></script>
+<script src="compare.js"></script>
+<script src="save.js"></script>
+<script src="tools2.js"></script>
+<script src="blocks.js"></script>
+<script src="ui.js"></script>
+<script src="forms.js"></script>
+<script src="pagetools.js"></script>
+<script src="batch.js"></script>
+<script src="objects.js"></script>
+<script src="menus.js"></script>
+<script src="desktop.js"></script>
+</body>
+</html>

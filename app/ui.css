@@ -1,0 +1,177 @@
+/* ===== DM Studio · PDF — interfaz de visor profesional: barra de modos, panel de herramientas,
+   barra flotante vertical, documento centrado y barra estrecha a la derecha ===== */
+:root{--blue:#1473e6;--blue2:#e5f0fd;--tp-c1:#1473e6;--tp-c2:#d7373f;--tp-c3:#8a3ffc;--tp-c4:#12805c;--tp-c5:#e68619}
+[data-theme=dark]{
+  --bg:#1d1d1d;--panel:#2c2c2c;--panel2:#363636;--line:#3e3e3e;--text:#ececec;--muted:#a8a8a8;--hover:#3b3b3b;
+  --accent:#e5484d;--accent2:#40282a;--blue:#4a90f0;--blue2:#23395a;--page-shadow:0 2px 14px rgba(0,0,0,.55);
+  --tp-c1:#5aa0ff;--tp-c2:#ff6b6b;--tp-c3:#b48cff;--tp-c4:#3fbf8f;--tp-c5:#ffae4a;
+}
+body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
+#viewer{background:var(--bg)}
+
+/* ---------- barra superior ---------- */
+#topbar{height:56px!important;min-height:56px;flex-wrap:nowrap!important;gap:4px;padding:0 12px!important;background:var(--panel);border-bottom:1px solid var(--line)}
+#topbar .brand{margin-right:4px}
+#topbar .logo{width:32px;height:32px;border-radius:8px;font-size:17px}
+.brand-name{font-size:15px}
+#modeTabs{display:flex;align-items:stretch;align-self:stretch;margin-left:10px}
+#modeTabs button{border:0;border-radius:0;border-bottom:2px solid transparent;padding:0 14px;color:var(--muted);font-size:14px;white-space:nowrap}
+#modeTabs button:hover{background:transparent;color:var(--text)}
+#modeTabs button.on{color:var(--text);border-bottom-color:var(--text);font-weight:600}
+.doc-title{flex:1;display:flex;justify-content:center;min-width:0}
+#topbar .spacer{display:none}
+#docMenuBtn{max-width:380px;min-width:0;gap:8px;font-weight:600;font-size:14px}
+#docMenuBtn i[data-i]{width:16px;height:16px;color:var(--muted)}
+#docMenuBtn .chev{width:12px;height:12px}
+#docName{display:inline!important;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+#topActions{border:0;gap:2px;padding:0}
+#topActions>button,#viewGroup>button{padding:8px;border-radius:8px}
+#topActions .primary{border-radius:20px;padding:7px 18px;font-weight:600;margin-left:6px}
+#topActions .primary span{display:inline!important}
+#topActions [data-act=compare]{border:1.5px solid var(--text);border-radius:20px;padding:6px 14px;font-weight:600;margin-left:6px}
+#topActions [data-act=compare] span{display:inline!important}
+#topActions [data-act=convertMenu]{display:none!important}
+#viewGroup{border:0;padding:0;gap:2px}
+#viewSel{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 6px}
+
+/* ---------- pestañas de documentos ---------- */
+#tabbar{background:var(--bg)}
+
+/* ---------- distribución principal ---------- */
+#main{display:flex}
+#toolsPanel{width:300px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 14px 30px}
+body[data-mode=read] #toolsPanel,body.tools-closed #toolsPanel,body.reading #toolsPanel{display:none}
+#work{flex:1;min-width:0;position:relative;display:flex}
+#work #viewer{flex:1}
+#sidebar{order:3;width:260px;border-right:0;border-left:1px solid var(--line)}
+#sidebar .tabs{display:none}
+body.side-closed #sidebar{display:none}
+#rail{order:4;width:52px;flex:none;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:10px 0 8px;gap:4px;overflow-y:auto}
+body.reading #rail{display:flex}
+
+/* ---------- panel de herramientas (izquierda) ---------- */
+.tp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.tp-head h2{font-size:19px;margin:0;font-weight:700}
+.tp-head button{padding:4px}
+.tp-sub{color:var(--muted);margin:6px 0 4px;font-size:14px}
+.tp-sec{font-size:11.5px;font-weight:700;letter-spacing:.07em;color:var(--muted);margin:22px 4px 6px;text-transform:uppercase}
+.tp-sec:first-of-type{margin-top:16px}
+.tp-item{display:flex;align-items:center;gap:14px;width:100%;padding:9px 10px;border-radius:8px;font-size:14.5px;text-align:left;color:var(--text)}
+.tp-item:hover{background:var(--hover)}
+.tp-item i[data-i]{width:23px;height:23px;flex:none;color:var(--c,var(--tp-c1))}
+.tp-item span{flex:1}
+.tp-badge{background:var(--blue);color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:1px 6px;letter-spacing:.03em}
+.tp-cta{margin:16px 4px 4px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.tp-cta button{border-radius:20px;padding:8px 20px;font-weight:600;background:var(--blue);color:#fff}
+.tp-cta button:hover{background:var(--blue);filter:brightness(1.1)}
+.tp-cta small{color:var(--muted)}
+
+/* ---------- barra flotante de herramientas y propiedades ---------- */
+#toolbar{position:absolute!important;inset:0;pointer-events:none;height:auto!important;min-height:0!important;background:none!important;border:0!important;padding:0!important;display:block!important;z-index:20}
+#toolbar .tools{pointer-events:auto;position:absolute;left:14px;top:14px;flex-direction:column;flex-wrap:nowrap!important;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px;box-shadow:0 4px 16px rgba(0,0,0,.35);max-height:calc(100% - 28px);overflow-y:auto}
+#toolbar .tools button{padding:8px!important;border-radius:8px}
+#toolbar .tools .sep{width:24px;height:1px;margin:4px auto}
+#toolbar .tools button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+#toolbar .tools .lbl{display:none}
+#toolbar .props{pointer-events:auto;position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px;box-shadow:0 4px 16px rgba(0,0,0,.35);display:none!important;max-width:calc(100% - 140px);flex-wrap:wrap}
+body.show-props #toolbar .props{display:flex!important}
+#pages{padding:28px 24px 40px 84px}
+#pages{padding-top:70px} /* siempre el mismo hueco: así la página no salta al seleccionar */
+/* herramientas visibles según el modo */
+body[data-mode=all] .tools>:not([data-m~=all]),
+body[data-mode=read] .tools>:not([data-m~=read]),
+body[data-mode=edit] .tools>:not([data-m~=edit]),
+body[data-mode=convert] .tools>:not([data-m~=convert]),
+body[data-mode=sign] .tools>:not([data-m~=sign]){display:none!important}
+
+/* ---------- barra derecha ---------- */
+.rail-panels{display:flex;flex-direction:column;gap:4px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+#rail button{padding:8px;border-radius:8px}
+#rail button i[data-i]{width:19px;height:19px}
+#rail .rail-panels button.on{background:var(--blue2);color:var(--blue)}
+.rail-grow{flex:1;min-height:10px}
+.rail-nav{display:flex;flex-direction:column;align-items:center;gap:2px}
+.rail-nav input{width:38px;height:36px;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-weight:600}
+.rail-nav span{font-size:11px;color:var(--muted);margin-bottom:2px}
+.rail-zoom{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+#zoomSel{width:46px;font-size:11px;padding:3px 1px;border-radius:6px;text-align:center;background:var(--panel2);border:1px solid var(--line)}
+
+/* ---------- bienvenida ---------- */
+#empty .drop{border:0;background:var(--panel);max-width:620px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.25);padding:44px 48px}
+.welcome-art{display:flex;justify-content:center;margin-bottom:6px}
+.big-logo{width:64px!important;height:64px!important;border-radius:16px!important;font-size:34px!important}
+#empty h1{font-size:26px;font-weight:600}
+#empty .row button{border-radius:20px}
+#empty .row .primary{background:var(--blue)}
+.tips{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px;text-align:left}
+.tips div{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:10px;background:var(--panel2)}
+.tips b{font-size:22px;font-weight:300;color:var(--accent)}
+.tips span{font-size:13px;color:var(--muted)}
+
+/* ---------- ventanas estrechas ---------- */
+@media (max-width:1400px){ #toolsPanel{width:260px} #modeTabs button{padding:0 10px} }
+@media (max-width:1180px){ .brand-name{display:none} #modeTabs button{padding:0 8px;font-size:13px} #docName{max-width:180px} #topActions [data-act=compare] span{display:none!important} #topActions [data-act=compare]{padding:6px 9px} }
+@media (max-width:980px){ #toolsPanel{position:absolute;z-index:40;top:0;bottom:0;left:0;box-shadow:6px 0 24px rgba(0,0,0,.4)} #main{position:relative} .doc-title{display:none} }
+
+.keys{width:100%;border-collapse:collapse}.keys td{padding:5px 6px;border-bottom:1px solid var(--line)}.keys kbd{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font:12px "Segoe UI",sans-serif}
+
+/* ---------- inicio ---------- */
+#home{display:none;position:absolute;inset:0;z-index:30;overflow:auto;background:var(--bg)}
+body.no-doc #home,body.at-home #home{display:block}
+body.no-doc #toolbar,body.at-home #toolbar{display:none!important}
+#empty{display:none!important}
+.home-wrap{max-width:1180px;margin:0 auto;padding:34px 40px 60px}
+.home-wrap h1{font-size:30px;margin:0;font-weight:700}
+.home-sub{color:var(--muted);margin:6px 0 24px;font-size:15px}
+.home-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:28px}
+.home-card h3,.home-sec h3{margin:0 0 14px;font-size:17px}
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:14px}
+.rec{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);text-align:left;white-space:normal}
+.rec:hover{border-color:var(--c,var(--blue));background:var(--hover)}
+.rec b{display:flex;align-items:center;gap:9px;font-size:15px}
+.rec b i[data-i]{width:22px;height:22px;color:var(--c,var(--blue))}
+.rec small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.rec span{color:var(--blue);font-weight:600;font-size:13px;margin-top:4px}
+.rec-open{align-items:center;justify-content:center;background:var(--bg);min-height:110px}
+.rec-open i[data-i]{width:30px;height:30px}
+.home-sec{margin-bottom:26px}
+.home-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.home-h h3{margin:0!important}
+.home-h button{font-weight:600}
+.pin-row{display:flex;flex-wrap:wrap;gap:8px}
+.pin{border:1px solid var(--line);border-radius:20px;padding:6px 8px 6px 12px;background:var(--panel);gap:8px}
+.pin i[data-i]{width:17px;height:17px;color:var(--c,var(--blue))}
+.pin b{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-weight:400;opacity:.6}
+.pin b:hover{opacity:1;background:var(--hover)}
+.file-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+.file{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:0;border-bottom:1px solid var(--line);text-align:left}
+.file:last-child{border-bottom:0}
+.file i[data-i]{color:var(--accent)}
+.file span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file small{color:var(--muted)}
+#homeBtn{padding:7px;border-radius:8px;background:var(--blue2);color:var(--blue);margin-right:2px}
+
+/* ---------- buscador de herramientas ---------- */
+#tsBtn{border:1px solid var(--line);border-radius:20px;padding:6px 10px 6px 12px;color:var(--muted);gap:8px;margin-right:6px;min-width:200px}
+#tsBtn span{flex:1;text-align:left}
+#tsBtn kbd{font:11px "Segoe UI",sans-serif;border:1px solid var(--line);border-radius:5px;padding:0 5px;background:var(--panel2)}
+#palette{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.35);display:flex;justify-content:center;align-items:flex-start;padding-top:90px}
+.pal-card{width:min(600px,94vw);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden}
+.pal-in{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.pal-in input{flex:1;border:0;background:transparent;font-size:16px;outline:none}
+.pal-in kbd{font:11px "Segoe UI",sans-serif;border:1px solid var(--line);border-radius:5px;padding:0 5px;color:var(--muted)}
+.pal-list{max-height:400px;overflow-y:auto;padding:6px}
+.pal-item{display:flex;align-items:center;gap:12px;width:100%;padding:9px 12px;border-radius:8px;text-align:left}
+.pal-item i[data-i]{width:20px;height:20px;color:var(--c,var(--blue))}
+.pal-item span{flex:1}
+.pal-item small{color:var(--muted)}
+.pal-item.on,.pal-item:hover{background:var(--hover)}
+
+/* ---------- sellos ---------- */
+.stampgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stampgrid button{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;justify-content:center}
+.stampgrid img{max-width:100%;height:42px;object-fit:contain}
+@media (max-width:1250px){ #tsBtn span,#tsBtn kbd{display:none} #tsBtn{min-width:0;padding:7px} }
+
+#tsBtn span{display:inline!important}
+@media (max-width:1250px){ #tsBtn span{display:none!important} }

@@ -1,0 +1,5 @@
+# programas compilados: el .exe se publica en Releases, no en el código
+*.exe
+*.folio-tmp
+Thumbs.db
+desktop.ini
