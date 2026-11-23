@@ -18,7 +18,8 @@ Se usa como programa de escritorio (`DM Studio PDF.exe`) o en el navegador.
 
 ## Cómo usarlo
 
-- **Programa de escritorio:** descarga `DM Studio PDF.exe` desde *Releases* y ábrelo. Usa WebView2, el motor web que ya trae Windows 10/11.
+- **Programa de escritorio:** descarga `DM-Studio-PDF-Windows.zip` desde *Releases*, descomprímelo y abre `DM Studio PDF.exe`. No se instala nada: usa WebView2, el motor web que ya trae Windows 10/11.
+  Si Windows muestra «Windows protegió su PC», pulsa *Más información* ▸ *Ejecutar de todas formas* (pasa con programas nuevos sin firma digital).
 - **En el navegador:** abre `app/Abrir DM Studio PDF.bat` (necesita Python) y se abrirá en `http://localhost:5173`.
 
 ## Estructura
@@ -32,7 +33,7 @@ escritorio/   el programa de Windows: Program.cs, compilar.ps1, icono/ y webview
 
 Clic derecho en `escritorio/compilar.ps1` ▸ *Ejecutar con PowerShell*.
 Usa el compilador de C# que trae Windows (.NET Framework 4), no hace falta instalar nada.
-El resultado es `escritorio/DM Studio PDF.exe`, con la app dentro.
+El resultado queda en `escritorio/dist/`: la carpeta `DM Studio PDF` (programa, librerías de WebView2 y la app) y el ZIP para publicar.
 
 ## Librerías de terceros
 

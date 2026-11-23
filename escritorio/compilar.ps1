@@ -1,30 +1,21 @@
-﻿# Compila «DM Studio PDF.exe»: empaqueta la app (carpeta app) dentro del programa.
+﻿# Compila DM Studio · PDF para Windows como programa portable:
+#   dist\DM Studio PDF\            DM Studio PDF.exe + librerías WebView2 de Microsoft + carpeta app
+#   dist\DM-Studio-PDF-Windows.zip lo mismo, comprimido, para publicar
+# El .exe no lleva nada empaquetado ni extrae archivos: así no lo confunden con un virus.
 # Uso: clic derecho > Ejecutar con PowerShell (o: powershell -ExecutionPolicy Bypass -File compilar.ps1)
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $app = Join-Path (Split-Path -Parent $here) 'app'
-$work = Join-Path $env:TEMP 'FolioPDF-compilar'   # fuera de OneDrive (que bloquea archivos mientras sincroniza)
+$work = Join-Path $env:TEMP 'DMStudioPDF-compilar'   # fuera de OneDrive (que bloquea archivos mientras sincroniza)
+$dist = Join-Path $here 'dist'
+$out = Join-Path $dist 'DM Studio PDF'
 Add-Type -AssemblyName System.Drawing, System.IO.Compression.FileSystem
-if (Test-Path $work) { Remove-Item $work -Recurse -Force }
-New-Item -ItemType Directory $work | Out-Null
+foreach ($d in $work, $out) { if (Test-Path $d) { Remove-Item $d -Recurse -Force } }
+New-Item -ItemType Directory $work, $out | Out-Null
 
-# 1) icono: los PNG del logo de la carpeta «icono» (si falta alguno, se dibuja uno simple)
-function New-Png([int]$s) {
-  $bmp = New-Object System.Drawing.Bitmap $s, $s
-  $g = [System.Drawing.Graphics]::FromImage($bmp)
-  $g.SmoothingMode = 'AntiAlias'; $g.TextRenderingHint = 'AntiAliasGridFit'
-  $r = [math]::Max(2, [int]($s * 0.22)); $d = $r * 2
-  $p = New-Object System.Drawing.Drawing2D.GraphicsPath
-  $p.AddArc(0, 0, $d, $d, 180, 90); $p.AddArc($s - $d - 1, 0, $d, $d, 270, 90); $p.AddArc($s - $d - 1, $s - $d - 1, $d, $d, 0, 90); $p.AddArc(0, $s - $d - 1, $d, $d, 90, 90); $p.CloseFigure()
-  $g.FillPath((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(214, 41, 62))), $p)
-  $f = New-Object System.Drawing.Font 'Segoe UI', ([single]($s * 0.62)), ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
-  $sf = New-Object System.Drawing.StringFormat; $sf.Alignment = 'Center'; $sf.LineAlignment = 'Center'
-  $g.DrawString('F', $f, [System.Drawing.Brushes]::White, (New-Object System.Drawing.RectangleF 0, ([single]($s * 0.02)), $s, $s), $sf)
-  $ms = New-Object System.IO.MemoryStream; $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()
-  return ,$ms.ToArray()
-}
+# 1) icono del programa: los PNG del logo (carpeta «icono»)
 $sizes = 16, 24, 32, 48, 64, 128, 256
-$pngs = $sizes | ForEach-Object { $f = Join-Path $here "icono\icono-$_.png"; if (Test-Path $f) { ,[IO.File]::ReadAllBytes($f) } else { ,(New-Png $_) } }
+$pngs = $sizes | ForEach-Object { ,[IO.File]::ReadAllBytes((Join-Path $here "icono\icono-$_.png")) }
 $ico = New-Object System.IO.MemoryStream; $bw = New-Object System.IO.BinaryWriter $ico
 $bw.Write([uint16]0); $bw.Write([uint16]1); $bw.Write([uint16]$sizes.Count)
 $off = 6 + 16 * $sizes.Count
@@ -34,25 +25,39 @@ for ($i = 0; $i -lt $sizes.Count; $i++) {
   $bw.Write([uint32]$pngs[$i].Length); $bw.Write([uint32]$off); $off += $pngs[$i].Length
 }
 foreach ($p in $pngs) { $bw.Write([byte[]]$p) }
-[IO.File]::WriteAllBytes((Join-Path $work 'folio.ico'), $ico.ToArray())
+$icoFile = Join-Path $work 'dmstudio.ico'
+[IO.File]::WriteAllBytes($icoFile, $ico.ToArray())
 
-# 2) la app, en un zip (sin el .bat, que en el .exe no hace falta)
-$stage = Join-Path $work 'app'
-Copy-Item $app $stage -Recurse
-Get-ChildItem $stage -Filter '*.bat' | Remove-Item -Force
-$zip = Join-Path $work 'app.zip'
-[IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
-
-# 3) compilar con el compilador de C# que trae Windows (.NET Framework 4)
+# 2) compilar con el compilador de C# que trae Windows (.NET Framework 4)
 $fw = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
 $csc = Join-Path $fw 'csc.exe'
-$out = Join-Path $here 'DM Studio PDF.exe'
-$wv = Join-Path $here 'webview2'   # Microsoft.Web.WebView2 (SDK redistribuible de Microsoft)
-& $csc /nologo /target:winexe /optimize+ /platform:x64 "/out:$out" "/win32icon:$(Join-Path $work 'folio.ico')" "/resource:$zip,app.zip" `
-  "/resource:$wv\Microsoft.Web.WebView2.Core.dll,Microsoft.Web.WebView2.Core.dll" "/resource:$wv\Microsoft.Web.WebView2.WinForms.dll,Microsoft.Web.WebView2.WinForms.dll" "/resource:$wv\WebView2Loader.dll,WebView2Loader.dll" `
+$wv = Join-Path $here 'webview2'   # Microsoft.Web.WebView2 (SDK redistribuible de Microsoft, firmado por Microsoft)
+$exe = Join-Path $out 'DM Studio PDF.exe'
+& $csc /nologo /target:winexe /optimize+ /platform:x64 "/out:$exe" "/win32icon:$icoFile" `
   "/r:$wv\Microsoft.Web.WebView2.Core.dll" "/r:$wv\Microsoft.Web.WebView2.WinForms.dll" `
-  "/r:$fw\System.IO.Compression.dll" "/r:$fw\System.IO.Compression.FileSystem.dll" /r:System.Windows.Forms.dll /r:System.Drawing.dll `
+  /r:System.Windows.Forms.dll /r:System.Drawing.dll `
   (Join-Path $here 'Program.cs')
 if ($LASTEXITCODE -ne 0) { throw 'La compilación falló' }
-Remove-Item $work -Recurse -Force
-"Listo: $out ({0:N1} MB)" -f ((Get-Item $out).Length / 1MB)
+
+# 3) junto al .exe: las librerías de WebView2 y la app (sin el .bat, que en el programa no hace falta)
+Copy-Item "$wv\Microsoft.Web.WebView2.Core.dll", "$wv\Microsoft.Web.WebView2.WinForms.dll", "$wv\WebView2Loader.dll" $out
+Copy-Item $app (Join-Path $out 'app') -Recurse
+Get-ChildItem (Join-Path $out 'app') -Filter '*.bat' | Remove-Item -Force
+Copy-Item (Join-Path (Split-Path -Parent $here) 'LICENSE') (Join-Path $out 'LICENSE.txt') -ErrorAction SilentlyContinue
+@"
+DM Studio · PDF
+===============
+Abre «DM Studio PDF.exe». No hace falta instalar nada (Windows 10/11).
+Deja todos estos archivos juntos: el programa usa la carpeta «app» y las librerías de WebView2.
+
+Si Windows muestra «Windows protegió su PC», pulsa «Más información» y «Ejecutar de todas formas»:
+pasa con los programas nuevos que aún no están firmados digitalmente.
+"@ | Set-Content (Join-Path $out 'LEEME.txt') -Encoding UTF8
+
+# 4) ZIP para publicar
+$zip = Join-Path $dist 'DM-Studio-PDF-Windows.zip'
+if (Test-Path $zip) { Remove-Item $zip -Force }
+[IO.Compression.ZipFile]::CreateFromDirectory($out, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)
+Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
+"Listo: $exe ({0:N2} MB)" -f ((Get-Item $exe).Length / 1MB)
+"ZIP:   $zip ({0:N1} MB)" -f ((Get-Item $zip).Length / 1MB)

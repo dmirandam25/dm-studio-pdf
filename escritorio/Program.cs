@@ -1,6 +1,6 @@
 // DM Studio · PDF — programa de escritorio (antes Folio PDF).
-// Lleva la app dentro (app.zip) y la muestra en su propia ventana con WebView2 (el motor web
-// que trae Windows), sin navegador. La app se sirve solo dentro del equipo (127.0.0.1).
+// Muestra la app (carpeta «app» junto al .exe) en su propia ventana con WebView2, el motor web
+// que trae Windows. La app se sirve solo dentro del equipo (127.0.0.1). No extrae ni descarga nada.
 // Los archivos pasados al programa (doble clic en un PDF, «Abrir con») se abren en Folio.
 using System;
 using System.Collections.Generic;
@@ -20,16 +20,17 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("DM Studio · PDF")]
 [assembly: AssemblyProduct("DM Studio · PDF")]
 [assembly: AssemblyDescription("Editor de PDF local y privado")]
+[assembly: AssemblyCompany("DM Studio")]
+[assembly: AssemblyCopyright("DM Studio · Licencia AGPL-3.0")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
 static class FolioPDF
 {
     const int PORT = 5180;
-    const string WV2 = "1.0.3240.44";
     public static readonly string URL = "http://127.0.0.1:" + PORT + "/";
     public static readonly string DATA = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FolioPDF");
-    static readonly Dictionary<string, byte[]> files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+    static readonly string AppDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app");
     static readonly Dictionary<string, string> queued = new Dictionary<string, string>();
     static readonly List<string> pending = new List<string>();
     static readonly object gate = new object();
@@ -40,9 +41,6 @@ static class FolioPDF
     public static readonly string pageKey = Guid.NewGuid().ToString("N");
     static readonly HashSet<string> allowedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     static readonly HashSet<string> allowedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    static extern bool SetDllDirectory(string path);
 
     [STAThread]
     static void Main(string[] args)
@@ -83,7 +81,11 @@ static class FolioPDF
 
         token = Guid.NewGuid().ToString("N");
         File.WriteAllText(tokenFile, token);
-        LoadApp();
+        if (!File.Exists(Path.Combine(AppDir, "index.html")))
+        {
+            MessageBox.Show("Falta la carpeta «app» junto a DM Studio PDF.exe.\n\nDescomprime el ZIP completo y abre el programa desde esa carpeta.", "DM Studio · PDF", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
         foreach (string d in docs) Enqueue(d);
 
         TcpListener listener;
@@ -98,33 +100,15 @@ static class FolioPDF
         releaseStartup();
 
         bool ok = false;
-        try { PrepareWebView2(); ok = RunWindow(); }
+        try { ok = RunWindow(); }
         catch (Exception e) { Debug.WriteLine(e); }
-        if (!ok) RunInBrowser(); // sin WebView2: ventana de aplicación de Edge o Chrome
-        try { listener.Stop(); } catch { }
-    }
-
-    // ---------- WebView2: las DLL van dentro del .exe y se extraen la primera vez ----------
-    static string binDir;
-    static void PrepareWebView2()
-    {
-        binDir = Path.Combine(DATA, "bin", WV2);
-        Directory.CreateDirectory(binDir);
-        foreach (string n in new[] { "Microsoft.Web.WebView2.Core.dll", "Microsoft.Web.WebView2.WinForms.dll", "WebView2Loader.dll" })
+        if (!ok)
         {
-            string p = Path.Combine(binDir, n);
-            using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream(n))
-            {
-                if (File.Exists(p) && new FileInfo(p).Length == s.Length) continue;
-                using (FileStream fs = File.Create(p)) s.CopyTo(fs);
-            }
+            // sin WebView2 (raro en Windows 10/11): se explica cómo instalarlo, sin abrir navegadores raros
+            if (MessageBox.Show("DM Studio · PDF necesita Microsoft Edge WebView2, que viene con Windows 10 y 11.\n\n¿Abrir la página de Microsoft para instalarlo?", "DM Studio · PDF", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
+                try { Process.Start("https://developer.microsoft.com/microsoft-edge/webview2/"); } catch { }
         }
-        SetDllDirectory(binDir);
-        AppDomain.CurrentDomain.AssemblyResolve += (o, e) =>
-        {
-            string n = new AssemblyName(e.Name).Name + ".dll", p = Path.Combine(binDir, n);
-            return File.Exists(p) ? Assembly.LoadFrom(p) : null;
-        };
+        try { listener.Stop(); } catch { }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -136,50 +120,6 @@ static class FolioPDF
         AppWindow w = new AppWindow(); window = w;
         Application.Run(w);
         return true;
-    }
-
-    // ---------- plan B: Edge/Chrome en modo aplicación ----------
-    static string Profile { get { return Path.Combine(DATA, "Perfil"); } }
-    static void RunInBrowser()
-    {
-        string pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string[] candidates = {
-            Path.Combine(pf86, @"Microsoft\Edge\Application\msedge.exe"), Path.Combine(pf, @"Microsoft\Edge\Application\msedge.exe"),
-            Path.Combine(pf, @"Google\Chrome\Application\chrome.exe"), Path.Combine(pf86, @"Google\Chrome\Application\chrome.exe"), Path.Combine(local, @"Google\Chrome\Application\chrome.exe")
-        };
-        foreach (string exe in candidates)
-        {
-            if (!File.Exists(exe)) continue;
-            ProcessStartInfo si = new ProcessStartInfo(exe, "--app=" + URL + " --user-data-dir=\"" + Profile + "\" --no-first-run --no-default-browser-check --window-size=1440,920");
-            si.UseShellExecute = false;
-            try
-            {
-                Process p = Process.Start(si); p.WaitForExit(); Thread.Sleep(2500);
-                for (int i = 0; i < 43200 && ProfileInUse(); i++) Thread.Sleep(1000);
-                return;
-            }
-            catch { }
-        }
-        try { Process.Start(URL); } catch { }
-        MessageBox.Show("DM Studio · PDF está abierto en tu navegador.\nPulsa Aceptar cuando termines para cerrarlo.", "DM Studio · PDF");
-    }
-    static bool ProfileInUse()
-    {
-        string lockFile = Path.Combine(Profile, "lockfile");
-        if (!File.Exists(lockFile)) return false;
-        try { using (File.Open(lockFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { } return false; }
-        catch { return true; }
-    }
-
-    static void LoadApp()
-    {
-        using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream("app.zip"))
-        using (ZipArchive z = new ZipArchive(s, ZipArchiveMode.Read))
-            foreach (ZipArchiveEntry e in z.Entries)
-            {
-                if (e.FullName.EndsWith("/")) continue;
-                using (Stream es = e.Open()) using (MemoryStream ms = new MemoryStream()) { es.CopyTo(ms); files["/" + e.FullName.Replace('\\', '/')] = ms.ToArray(); }
-            }
     }
 
     static void Enqueue(string path)
@@ -314,8 +254,9 @@ static class FolioPDF
                 }
 
                 if (path == "/") path = "/index.html";
-                byte[] data;
-                if (files.TryGetValue(path, out data)) Send(ns, 200, Mime(path), data, method);
+                // solo archivos de dentro de la carpeta «app»
+                string file = Path.GetFullPath(Path.Combine(AppDir, path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+                if (file.StartsWith(AppDir + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && File.Exists(file)) Send(ns, 200, Mime(path), File.ReadAllBytes(file), method);
                 else Send(ns, 404, "text/plain", Encoding.UTF8.GetBytes("No encontrado"), method);
             }
             catch { }
